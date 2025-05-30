@@ -1,0 +1,39 @@
+{
+  "name": "Arabic Video Downloader",
+  "description": "موقع تحميل الفيديوهات العربي - تحميل من أكثر من 1000 موقع",
+  "repository": "https://github.com/yourusername/arabic-video-downloader",
+  "logo": "https://img.icons8.com/color/96/download.png",
+  "keywords": ["flask", "video", "downloader", "arabic", "youtube", "tiktok"],
+  "stack": "heroku-20",
+  "buildpacks": [
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ],
+  "env": {
+    "SESSION_SECRET": {
+      "description": "مفتاح سري للجلسات - يجب تغييره في الإنتاج",
+      "generator": "secret"
+    },
+    "FLASK_ENV": {
+      "value": "production"
+    }
+  },
+  "scripts": {
+    "postdeploy": "python -c \"from app import app, db; app.app_context().push(); db.create_all()\""
+  }
+}
