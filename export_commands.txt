@@ -1,0 +1,22 @@
+# أوامر تصدير المشروع إلى GitHub
+# انسخ هذه الأوامر وشغلها واحداً تلو الآخر
+
+# 1. إزالة الريموت الحالي إن وجد
+git remote remove origin
+
+# 2. إضافة GitHub repository الخاص بك (غير USERNAME باسم حسابك)
+git remote add origin https://github.com/USERNAME/arabic-video-downloader.git
+
+# 3. إضافة جميع الملفات
+git add .
+
+# 4. عمل commit
+git commit -m "Initial commit: Arabic Video Downloader - Complete Project"
+
+# 5. تعيين الفرع الرئيسي
+git branch -M main
+
+# 6. رفع الكود إلى GitHub
+git push -u origin main
+
+# ملاحظة: ستحتاج لإدخال username وpassword/token الخاص بـ GitHub
