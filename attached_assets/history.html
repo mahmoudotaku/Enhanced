@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}سجل التحميلات{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-history me-3"></i>
+                    سجل التحميلات
+                </h2>
+                <button class="btn btn-outline-danger" onclick="clearHistory()">
+                    <i class="fas fa-trash me-2"></i>
+                    مسح السجل
+                </button>
+            </div>
+            
+            {% if downloads %}
+                <div class="row">
+                    {% for download in downloads %}
+                    <div class="col-lg-6 col-xl-4 mb-4">
+                        <div class="card glass-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <span class="badge bg-{{ 'success' if download.status == 'completed' else 'danger' if download.status == 'failed' else 'warning' }}">
+                                        {{ 'مكتمل' if download.status == 'completed' else 'فشل' if download.status == 'failed' else 'جاري' }}
+                                    </span>
+                                    <span class="badge bg-info">{{ download.platform }}</span>
+                                </div>
+                                
+                                <h6 class="card-title" title="{{ download.title }}">
+                                    {{ download.title[:60] + '...' if download.title|length > 60 else download.title }}
+                                </h6>
+                                
+                                <div class="download-details">
+                                    {% if download.channel_name %}
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-user me-2"></i>
+                                        {{ download.channel_name }}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-calendar me-2"></i>
+                                        {{ download.download_date.strftime('%Y-%m-%d %H:%M') }}
+                                    </p>
+                                    
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-video me-2"></i>
+                                        {{ download.quality }}
+                                    </p>
+                                    
+                                    {% if download.file_size %}
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-hdd me-2"></i>
+                                        {{ (download.file_size / 1024 / 1024) | round(1) }} ميجابايت
+                                    </p>
+                                    {% endif %}
+                                    
+                                    {% if download.duration %}
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-clock me-2"></i>
+                                        {% set hours = (download.duration // 3600) %}
+                                        {% set minutes = ((download.duration % 3600) // 60) %}
+                                        {% set seconds = (download.duration % 60) %}
+                                        {% if hours > 0 %}
+                                            {{ hours }}:{{ '%02d'|format(minutes) }}:{{ '%02d'|format(seconds) }}
+                                        {% else %}
+                                            {{ minutes }}:{{ '%02d'|format(seconds) }}
+                                        {% endif %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if download.error_message %}
+                                <div class="alert alert-danger mt-3">
+                                    <small>{{ download.error_message }}</small>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="d-grid gap-2 mt-3">
+                                    {% if download.status == 'completed' %}
+                                    <a href="{{ download.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        عرض الأصل
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-redo me-2"></i>
+                                        إعادة المحاولة
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination would go here if needed -->
+                
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox fa-5x text-muted mb-4"></i>
+                        <h4 class="text-muted">لا توجد تحميلات بعد</h4>
+                        <p class="text-muted mb-4">ابدأ بتحميل أول فيديو لك!</p>
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">
+                            <i class="fas fa-download me-2"></i>
+                            تحميل فيديو
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function clearHistory() {
+    if (confirm('هل أنت متأكد من مسح جميع سجلات التحميل؟')) {
+        // Implementation for clearing history
+        fetch('/api/history/clear', {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('حدث خطأ أثناء مسح السجل');
+            }
+        })
+        .catch(error => {
+            alert('حدث خطأ في الشبكة');
+        });
+    }
+}
+
+// Auto-refresh for in-progress downloads
+document.addEventListener('DOMContentLoaded', function() {
+    const inProgressCards = document.querySelectorAll('.badge:contains("جاري")');
+    if (inProgressCards.length > 0) {
+        // Refresh page every 30 seconds if there are in-progress downloads
+        setTimeout(() => {
+            location.reload();
+        }, 30000);
+    }
+});
+</script>
+{% endblock %}
