@@ -99,11 +99,10 @@ def api_download():
         download_id = generate_download_id()
         
         # Create progress tracker
-        progress = DownloadProgress(
-            download_id=download_id,
-            status='queued',
-            current_step='في الانتظار...'
-        )
+        progress = DownloadProgress()
+        progress.download_id = download_id
+        progress.status = 'queued'
+        progress.current_step = 'في الانتظار...'
         db.session.add(progress)
         db.session.commit()
         
@@ -225,85 +224,86 @@ def api_cleanup():
 
 def download_video_background(download_id, url, quality):
     """Background function to handle video download"""
-    try:
-        # Update progress to downloading
-        progress = DownloadProgress.query.filter_by(download_id=download_id).first()
-        if not progress:
-            return
-        
-        progress.status = 'downloading'
-        progress.current_step = 'جاري الحصول على معلومات الفيديو...'
-        progress.progress = 10.0
-        db.session.commit()
-        
-        # Get video info first
-        info_result = get_video_info(url)
-        if not info_result['success']:
-            progress.status = 'failed'
-            progress.error_message = info_result['error']
-            db.session.commit()
-            return
-        
-        video_info = info_result['data']
-        
-        # Update progress
-        progress.current_step = 'جاري تحميل الفيديو...'
-        progress.progress = 30.0
-        db.session.commit()
-        
-        # Download the video
-        download_result = download_video(
-            url, quality, download_id, 
-            lambda p: update_download_progress(download_id, p)
-        )
-        
-        if download_result['success']:
-            # Save to history
-            history = DownloadHistory(
-                url=url,
-                title=video_info.get('title', 'غير محدد'),
-                quality=quality,
-                file_size=download_result.get('file_size', 0),
-                duration=video_info.get('duration', 0),
-                platform=get_platform_name(url),
-                status='completed',
-                thumbnail_url=video_info.get('thumbnail', ''),
-                channel_name=video_info.get('uploader', ''),
-                view_count=video_info.get('view_count', 0),
-                upload_date=video_info.get('upload_date', '')
-            )
-            db.session.add(history)
-            
-            # Update progress to completed
-            progress.status = 'completed'
-            progress.current_step = 'تم التحميل بنجاح'
-            progress.progress = 100.0
-            db.session.commit()
-            
-        else:
-            # Update progress to failed
-            progress.status = 'failed'
-            progress.error_message = download_result['error']
-            db.session.commit()
-            
-    except Exception as e:
-        app.logger.error(f"Error in background download: {str(e)}")
+    with app.app_context():
         try:
+            # Update progress to downloading
             progress = DownloadProgress.query.filter_by(download_id=download_id).first()
-            if progress:
+            if not progress:
+                return
+            
+            progress.status = 'downloading'
+            progress.current_step = 'جاري الحصول على معلومات الفيديو...'
+            progress.progress = 10.0
+            db.session.commit()
+            
+            # Get video info first
+            info_result = get_video_info(url)
+            if not info_result['success']:
                 progress.status = 'failed'
-                progress.error_message = str(e)
+                progress.error_message = info_result['error']
                 db.session.commit()
-        except:
-            pass
+                return
+            
+            video_info = info_result['data']
+            
+            # Update progress
+            progress.current_step = 'جاري تحميل الفيديو...'
+            progress.progress = 30.0
+            db.session.commit()
+            
+            # Download the video
+            download_result = download_video(
+                url, quality, download_id, 
+                lambda p: update_download_progress(download_id, p)
+            )
+            
+            if download_result['success']:
+                # Save to history
+                history = DownloadHistory()
+                history.url = url
+                history.title = video_info.get('title', 'غير محدد')
+                history.quality = quality
+                history.file_size = download_result.get('file_size', 0)
+                history.duration = video_info.get('duration', 0)
+                history.platform = get_platform_name(url)
+                history.status = 'completed'
+                history.thumbnail_url = video_info.get('thumbnail', '')
+                history.channel_name = video_info.get('uploader', '')
+                history.view_count = video_info.get('view_count', 0)
+                history.upload_date = video_info.get('upload_date', '')
+                db.session.add(history)
+                
+                # Update progress to completed
+                progress.status = 'completed'
+                progress.current_step = 'تم التحميل بنجاح'
+                progress.progress = 100.0
+                db.session.commit()
+                
+            else:
+                # Update progress to failed
+                progress.status = 'failed'
+                progress.error_message = download_result['error']
+                db.session.commit()
+                
+        except Exception as e:
+            app.logger.error(f"Error in background download: {str(e)}")
+            try:
+                progress = DownloadProgress.query.filter_by(download_id=download_id).first()
+                if progress:
+                    progress.status = 'failed'
+                    progress.error_message = str(e)
+                    db.session.commit()
+            except:
+                pass
 
 def update_download_progress(download_id, progress_percent):
     """Update download progress in database"""
-    try:
-        progress = DownloadProgress.query.filter_by(download_id=download_id).first()
-        if progress:
-            progress.progress = 30.0 + (progress_percent * 0.7)  # 30-100% range
-            progress.current_step = f'جاري التحميل... {progress_percent:.1f}%'
-            db.session.commit()
-    except Exception as e:
-        app.logger.error(f"Error updating progress: {str(e)}")
+    with app.app_context():
+        try:
+            progress = DownloadProgress.query.filter_by(download_id=download_id).first()
+            if progress:
+                progress.progress = 30.0 + (progress_percent * 0.7)  # 30-100% range
+                progress.current_step = f'جاري التحميل... {progress_percent:.1f}%'
+                db.session.commit()
+        except Exception as e:
+            app.logger.error(f"Error updating progress: {str(e)}")
