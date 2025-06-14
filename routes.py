@@ -146,24 +146,27 @@ def api_get_progress(download_id):
 def api_download_file(download_id):
     """Download the completed file"""
     try:
-        # Find the download history record
-        history = DownloadHistory.query.filter_by(id=download_id).first()
-        if not history or history.status != 'completed':
+        # Find the download progress record
+        progress = DownloadProgress.query.filter_by(download_id=download_id).first()
+        if not progress or progress.status != 'completed':
             return jsonify({'success': False, 'error': 'الملف غير متوفر للتحميل'})
         
         # Look for the file in downloads directory
         downloads_dir = app.config['UPLOAD_FOLDER']
-        filename = f"{download_id}_{history.title[:50]}"
         
         # Find the actual file (it might have different extension)
-        for file in os.listdir(downloads_dir):
-            if file.startswith(f"{download_id}_"):
-                filepath = os.path.join(downloads_dir, file)
+        for filename in os.listdir(downloads_dir):
+            if filename.startswith(f"{download_id}_"):
+                filepath = os.path.join(downloads_dir, filename)
                 if os.path.exists(filepath):
+                    # Clean the filename for download
+                    original_name = filename[len(f"{download_id}_"):]
+                    safe_name = ''.join(c for c in original_name if c.isalnum() or c in '._- ')
+                    
                     return send_file(
                         filepath,
                         as_attachment=True,
-                        download_name=f"{history.title[:50]}.{file.split('.')[-1]}"
+                        download_name=safe_name or 'video.mp4'
                     )
         
         return jsonify({'success': False, 'error': 'الملف غير موجود'})

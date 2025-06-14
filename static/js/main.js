@@ -71,12 +71,26 @@ class VideoDownloader {
     }
 
     validateUrl(url, errorElement) {
-        const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-        const isValid = urlPattern.test(url.trim());
+        // More comprehensive URL validation for video platforms
+        const videoUrlPatterns = [
+            /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com)/,
+            /^(https?:\/\/)?(www\.)?(tiktok\.com|vm\.tiktok\.com)/,
+            /^(https?:\/\/)?(www\.)?(instagram\.com)/,
+            /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.watch)/,
+            /^(https?:\/\/)?(www\.)?(twitter\.com|x\.com)/,
+            /^(https?:\/\/)?(www\.)?(vimeo\.com)/,
+            /^(https?:\/\/)?(www\.)?(dailymotion\.com)/,
+            /^https?:\/\/[\w\-\.]+\.[a-z]{2,}[\w\-\.\/?#&=]*$/i
+        ];
+        
+        const trimmedUrl = url.trim();
+        if (!trimmedUrl) return true; // Empty is valid for now
+        
+        const isValid = videoUrlPatterns.some(pattern => pattern.test(trimmedUrl));
 
         if (errorElement) {
-            if (url && !isValid) {
-                errorElement.textContent = 'يرجى إدخال رابط صحيح';
+            if (trimmedUrl && !isValid) {
+                errorElement.textContent = 'يرجى إدخال رابط فيديو صحيح (YouTube, TikTok, Instagram, إلخ)';
                 errorElement.style.display = 'block';
                 return false;
             } else {
@@ -109,11 +123,67 @@ class VideoDownloader {
 
     setupDownloadForm() {
         const form = document.getElementById('downloadForm');
+        const previewBtn = document.getElementById('previewBtn');
+        
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.handleDownload();
             });
+        }
+        
+        if (previewBtn) {
+            previewBtn.addEventListener('click', () => {
+                this.handlePreview();
+            });
+        }
+    }
+
+    // Preview Handling
+    async handlePreview() {
+        const urlInput = document.getElementById('videoUrl');
+        const previewBtn = document.getElementById('previewBtn');
+
+        if (!urlInput || !previewBtn) return;
+
+        const url = urlInput.value.trim();
+
+        if (!url) {
+            this.showAlert('يرجى إدخال رابط الفيديو', 'warning');
+            return;
+        }
+
+        if (!this.validateUrl(url)) {
+            this.showAlert('يرجى إدخال رابط صحيح', 'warning');
+            return;
+        }
+
+        try {
+            previewBtn.disabled = true;
+            previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحميل...';
+
+            const response = await fetch('/api/info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: url })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showVideoPreview(data);
+                this.showAlert('تم جلب معلومات الفيديو بنجاح', 'success');
+            } else {
+                this.showAlert(data.error, 'danger');
+            }
+        } catch (error) {
+            console.error('Preview error:', error);
+            this.showAlert('خطأ في الشبكة. يرجى المحاولة مرة أخرى.', 'danger');
+        } finally {
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="fas fa-search me-2"></i>معاينة المعلومات';
         }
     }
 
