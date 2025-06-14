@@ -115,10 +115,13 @@ def download_video(url, quality, download_id, progress_callback=None):
             ydl_opts['format'] = 'best[height<=1080]'
         elif quality == 'mp3':
             ydl_opts['format'] = 'bestaudio/best'
-        else:
+        elif quality in ['1080p', '720p', '480p', '360p', '240p', '144p']:
             # Extract height from quality (e.g., "720p" -> 720)
             height = int(quality.replace('p', ''))
-            ydl_opts['format'] = f'best[height<={height}]'
+            ydl_opts['format'] = f'best[height<={height}]/worst[height>={height}]'
+        else:
+            # Fallback to best quality
+            ydl_opts['format'] = 'best[height<=1080]'
         
         # Add progress hook if callback provided
         if progress_callback:

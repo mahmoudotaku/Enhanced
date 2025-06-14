@@ -1,9 +1,11 @@
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
 
-/* CSS Variables for theming */
+/* CSS Variables for theming - Remove duplicate root */
+
+/* Default Black Theme */
 :root {
-  /* Light Theme Colors */
+  /* Primary black theme colors */
   --primary-hue: 220;
   --secondary-hue: 280;
   --success-hue: 120;
@@ -11,7 +13,27 @@
   --warning-hue: 45;
   --info-hue: 200;
   
-  /* Light theme variables */
+  /* Black theme variables */
+  --bg-primary: 0 0% 5%;
+  --bg-secondary: 0 0% 8%;
+  --text-primary: 0 0% 95%;
+  --text-secondary: 0 0% 75%;
+  --border-color: 0 0% 20%;
+  --glass-bg: 0 0% 10%;
+  --glass-border: 0 0% 25%;
+  --glass-shadow: 0 0 0;
+  
+  /* Common variables */
+  --border-radius: 15px;
+  --border-radius-lg: 25px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 2px 8px hsla(0, 0%, 0%, 0.3);
+  --shadow-md: 0 8px 25px hsla(0, 0%, 0%, 0.4);
+  --shadow-lg: 0 15px 35px hsla(0, 0%, 0%, 0.5);
+}
+
+/* Light Theme (optional) */
+[data-theme="light"] {
   --bg-primary: 220 20% 98%;
   --bg-secondary: 220 15% 95%;
   --text-primary: 220 20% 15%;
@@ -19,26 +41,6 @@
   --border-color: 220 15% 85%;
   --glass-bg: 255 255 255;
   --glass-border: 255 255 255;
-  --glass-shadow: 0 0 0;
-  
-  /* Common variables */
-  --border-radius: 15px;
-  --border-radius-lg: 25px;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow-sm: 0 2px 8px hsla(220, 20%, 0%, 0.08);
-  --shadow-md: 0 8px 25px hsla(220, 20%, 0%, 0.12);
-  --shadow-lg: 0 15px 35px hsla(220, 20%, 0%, 0.15);
-}
-
-/* Dark Theme */
-[data-theme="dark"] {
-  --bg-primary: 220 20% 8%;
-  --bg-secondary: 220 15% 12%;
-  --text-primary: 220 20% 95%;
-  --text-secondary: 220 15% 75%;
-  --border-color: 220 15% 25%;
-  --glass-bg: 220 20% 15%;
-  --glass-border: 220 15% 25%;
   --glass-shadow: 0 0 0;
 }
 
@@ -56,9 +58,9 @@ html {
 body {
   font-family: 'Cairo', sans-serif;
   background: linear-gradient(135deg, 
-    hsl(var(--primary-hue), 50%, 60%) 0%,
-    hsl(var(--secondary-hue), 40%, 55%) 50%,
-    hsl(var(--info-hue), 45%, 65%) 100%
+    hsl(0, 0%, 3%) 0%,
+    hsl(220, 20%, 8%) 50%,
+    hsl(0, 0%, 5%) 100%
   );
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
