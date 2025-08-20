@@ -60,11 +60,24 @@ def format_file_size(bytes_size):
 def get_video_info(url):
     """Get video information using yt-dlp"""
     try:
+        # Enhanced options for better compatibility
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
+            'ignoreerrors': False,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         }
+        
+        # Special handling for Facebook
+        if 'facebook.com' in url or 'fb.watch' in url:
+            ydl_opts.update({
+                'extractor_args': {
+                    'facebook': {
+                        'api_version': 'v18.0'
+                    }
+                }
+            })
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -81,6 +94,12 @@ def get_video_info(url):
             error_msg = 'الفيديو خاص ولا يمكن الوصول إليه'
         elif 'age-restricted' in error_msg:
             error_msg = 'الفيديو مقيد بالعمر'
+        elif 'Cannot parse data' in error_msg:
+            error_msg = 'المنصة لا تدعم هذا النوع من الروابط حالياً'
+        elif 'Requested format is not available' in error_msg:
+            error_msg = 'جودة الفيديو المطلوبة غير متوفرة'
+        elif 'facebook' in error_msg.lower():
+            error_msg = 'مشكلة في الوصول لفيديو فيسبوك. جرب رابط مختلف أو منصة أخرى'
         else:
             error_msg = 'فشل في الحصول على معلومات الفيديو'
             
@@ -108,20 +127,36 @@ def download_video(url, quality, download_id, progress_callback=None):
             'no_warnings': True,
             'extractaudio': quality == 'mp3',
             'audioformat': 'mp3' if quality == 'mp3' else None,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'retries': 3,
+            'ignoreerrors': False,
         }
         
-        # Set video quality
-        if quality == 'best':
-            ydl_opts['format'] = 'best[height<=1080]'
-        elif quality == 'mp3':
-            ydl_opts['format'] = 'bestaudio/best'
-        elif quality in ['1080p', '720p', '480p', '360p', '240p', '144p']:
-            # Extract height from quality (e.g., "720p" -> 720)
-            height = int(quality.replace('p', ''))
-            ydl_opts['format'] = f'best[height<={height}]/worst[height>={height}]'
-        else:
-            # Fallback to best quality
-            ydl_opts['format'] = 'best[height<=1080]'
+        # Special handling for Facebook
+        if 'facebook.com' in url or 'fb.watch' in url:
+            ydl_opts.update({
+                'extractor_args': {
+                    'facebook': {
+                        'api_version': 'v18.0'
+                    }
+                },
+                # For Facebook, try more flexible format selection
+                'format': 'best[height<=720]/best' if quality != 'mp3' else 'bestaudio/best'
+            })
+        
+        # Set video quality for non-Facebook URLs
+        if 'facebook.com' not in url and 'fb.watch' not in url:
+            if quality == 'best':
+                ydl_opts['format'] = 'best[height<=1080]/best'
+            elif quality == 'mp3':
+                ydl_opts['format'] = 'bestaudio/best'
+            elif quality in ['1080p', '720p', '480p', '360p', '240p', '144p']:
+                # Extract height from quality (e.g., "720p" -> 720)
+                height = int(quality.replace('p', ''))
+                ydl_opts['format'] = f'best[height<={height}]/worst[height>={height}]/best'
+            else:
+                # Fallback to best quality
+                ydl_opts['format'] = 'best[height<=1080]/best'
         
         # Add progress hook if callback provided
         if progress_callback:
@@ -164,8 +199,16 @@ def download_video(url, quality, download_id, progress_callback=None):
         error_msg = str(e)
         if 'Video unavailable' in error_msg:
             error_msg = 'الفيديو غير متوفر للتحميل'
-        elif 'format not available' in error_msg:
-            error_msg = 'الجودة المطلوبة غير متوفرة'
+        elif 'format not available' in error_msg or 'Requested format is not available' in error_msg:
+            error_msg = 'الجودة المطلوبة غير متوفرة. جرب جودة أخرى'
+        elif 'Cannot parse data' in error_msg:
+            error_msg = 'فشل في تحليل بيانات الفيديو. جرب رابط آخر'
+        elif 'facebook' in error_msg.lower():
+            error_msg = 'فيسبوك يواجه مشاكل حالياً. جرب يوتيوب أو منصة أخرى'
+        elif 'Private video' in error_msg:
+            error_msg = 'الفيديو خاص ولا يمكن تحميله'
+        elif 'age-restricted' in error_msg:
+            error_msg = 'الفيديو مقيد بالعمر ولا يمكن تحميله'
         else:
             error_msg = 'فشل في تحميل الفيديو'
             
