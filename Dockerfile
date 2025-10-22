@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Install Python dependencies
-COPY pyproject.toml .
-RUN pip install --no-cache-dir -r pyproject.toml
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
